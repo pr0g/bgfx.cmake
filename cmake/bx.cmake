@@ -35,6 +35,11 @@ if( WIN32 )
 	target_link_libraries( bx PUBLIC psapi )
 endif()
 
+# Link Android Library
+if ( ANDROID )
+	target_link_libraries( bx PUBLIC android log) # Link Android & Log Lib
+endif()
+
 include(GNUInstallDirs)
 
 # Add include directory of bx

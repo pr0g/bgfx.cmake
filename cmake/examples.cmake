@@ -144,13 +144,23 @@ function( add_example ARG_NAME )
 			target_link_libraries( example-${ARG_NAME} PUBLIC ${SDL2_LIBRARIES} )
 			target_compile_definitions( example-${ARG_NAME} PUBLIC ENTRY_CONFIG_USE_SDL )
 		elseif( UNIX AND NOT APPLE )
-			target_link_libraries( example-${ARG_NAME} PUBLIC X11 )
+			if (NOT ANDROID) 
+				target_link_libraries( example-${ARG_NAME} PUBLIC X11 )
+			endif()
+		elseif ( ANDROID )
+			target_link_libraries( example-${ARG_NAME} android log EGL GLESv3) # Link Android, Log Library, EGL, OpenGL
 		endif()
 	else()
-		if( BGFX_INSTALL_EXAMPLES )
-			add_executable( example-${ARG_NAME} WIN32 ${SOURCES} )
+		if (NOT ANDROID)
+			if( BGFX_INSTALL_EXAMPLES )
+				add_executable( example-${ARG_NAME} WIN32 ${SOURCES} )
+			else()
+				add_executable( example-${ARG_NAME} WIN32 EXCLUDE_FROM_ALL ${SOURCES} )
+			endif()
 		else()
-			add_executable( example-${ARG_NAME} WIN32 EXCLUDE_FROM_ALL ${SOURCES} )
+			# SHARED is better, because for example. 
+			# If we compile the "example-00-helloworld", it generates a separate .so file, which we can call via Android NDK the android_main() function and start the example.
+			add_library( example-${ARG_NAME} SHARED ${SOURCES} ) # Shared for Android
 		endif()
 		target_link_libraries( example-${ARG_NAME} example-common )
 		configure_debugging( example-${ARG_NAME} WORKING_DIR ${BGFX_DIR}/examples/runtime )
@@ -194,14 +204,21 @@ function( add_example ARG_NAME )
 		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E copy_directory ${BGFX_DIR}/examples/runtime/ $<TARGET_FILE_DIR:example-${ARG_NAME}>)
 	else()
 		# For everything else symlink some folders into our output directory
-		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/font $<TARGET_FILE_DIR:example-${ARG_NAME}>/font)
-		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/images $<TARGET_FILE_DIR:example-${ARG_NAME}>/images)
-		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/meshes $<TARGET_FILE_DIR:example-${ARG_NAME}>/meshes)
-		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/shaders $<TARGET_FILE_DIR:example-${ARG_NAME}>/shaders)
-		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/text $<TARGET_FILE_DIR:example-${ARG_NAME}>/text)
-		add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/textures $<TARGET_FILE_DIR:example-${ARG_NAME}>/textures)
+		# TODO: Handle it for Android Building (Compiler Crash)
+		if (NOT ANDROID)
+			add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/font $<TARGET_FILE_DIR:example-${ARG_NAME}>/font)
+			add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/images $<TARGET_FILE_DIR:example-${ARG_NAME}>/images)
+			add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/meshes $<TARGET_FILE_DIR:example-${ARG_NAME}>/meshes)
+			add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/shaders $<TARGET_FILE_DIR:example-${ARG_NAME}>/shaders)
+			add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/text $<TARGET_FILE_DIR:example-${ARG_NAME}>/text)
+			add_custom_command( TARGET example-${ARG_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink ${BGFX_DIR}/examples/runtime/textures $<TARGET_FILE_DIR:example-${ARG_NAME}>/textures)
+		endif()
 	endif()
-
+	
+	# Android
+	if(	ANDROID	)
+		include_directories(${ANDROID_NDK}/sources/android/native_app_glue) # FIX: fatal error: 'android_native_app_glue.h' file not found
+	endif()
 endfunction()
 
 # Build all examples target
@@ -229,48 +246,47 @@ if( BGFX_BUILD_EXAMPLES )
 	set(
 		BGFX_EXAMPLES
 		00-helloworld
-		01-cubes
-		02-metaballs
-		03-raymarch
-		04-mesh
-		05-instancing
-		06-bump
-		07-callback
-		08-update
-		09-hdr
-		10-font
-		11-fontsdf
-		12-lod
-		13-stencil
-		14-shadowvolumes
-		15-shadowmaps-simple
-		16-shadowmaps
-		17-drawstress
-		18-ibl
-		19-oit
-		20-nanovg
-#		21-deferred
-		22-windows
-		23-vectordisplay
-		24-nbody
-		25-c99
-		26-occlusion
-		27-terrain
-		28-wireframe
-		29-debugdraw
-		30-picking
-		31-rsm
-		32-particles
-		33-pom
-		34-mvs
-		35-dynamic
-		36-sky
-#		37-gpudrivenrendering
-		38-bloom
-		39-assao
-#		40-svt
+	#	01-cubes
+	#	02-metaballs
+	#	03-raymarch
+	#	04-mesh
+	#	05-instancing
+	#	06-bump
+	#	07-callback
+	#	08-update
+	#	09-hdr
+	#	10-font
+	#	11-fontsdf
+	#	12-lod
+	#	13-stencil
+	#	14-shadowvolumes
+	#	15-shadowmaps-simple
+	#	16-shadowmaps
+	#	17-drawstress
+	#	18-ibl
+	#	19-oit
+	#	20-nanovg
+	#	21-deferred
+	#	22-windows
+	#	23-vectordisplay
+	#	24-nbody
+	#	25-c99
+	#	26-occlusion
+	#	27-terrain
+	#	28-wireframe
+	#	29-debugdraw
+	#	30-picking
+	#	31-rsm
+	#	32-particles
+	#	33-pom
+	#	34-mvs
+	#	35-dynamic
+	#	36-sky
+	#	37-gpudrivenrendering
+	#	38-bloom
+	#	39-assao
+	#	40-svt
 	)
-
 	foreach( EXAMPLE ${BGFX_EXAMPLES} )
 		add_example( ${EXAMPLE} )
 	endforeach()
