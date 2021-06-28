@@ -11,9 +11,6 @@
 cmake_minimum_required( VERSION 3.0 )
 project(bgfx)
 
-# sets project version from api ver / git rev
-include( cmake/version.cmake )
-
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +26,6 @@ option( BGFX_BUILD_EXAMPLES   "Build bgfx examples."                          ON
 option( BGFX_INSTALL          "Create installation target."                   ON  )
 option( BGFX_INSTALL_EXAMPLES "Install examples and their runtimes."          OFF )
 option( BGFX_CUSTOM_TARGETS   "Include convenience custom targets."           ON  )
-option( BGFX_USE_OVR          "Build with OVR support."                       OFF )
 option( BGFX_AMALGAMATED      "Amalgamated bgfx build for faster compilation" OFF )
 option( BX_AMALGAMATED        "Amalgamated bx build for faster compilation"   OFF )
 option( BGFX_CONFIG_DEBUG     "Enables debug configuration on all builds"     OFF )
@@ -40,6 +36,10 @@ set( BGFX_OPENGLES_VERSION ""       CACHE STRING "Specify minimum OpenGL ES vers
 set( BGFX_LIBRARY_TYPE     "STATIC" CACHE STRING "Linking type for library" )
 
 set_property( CACHE BGFX_LIBRARY_TYPE PROPERTY STRINGS STATIC SHARED )
+
+if( BGFX_LIBRARY_TYPE MATCHES "SHARED" )
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 if( NOT BX_DIR )
 	set( BX_DIR "${CMAKE_CURRENT_SOURCE_DIR}/bx" CACHE STRING "Location of bx." )
@@ -57,9 +57,8 @@ elseif( NOT IS_ABSOLUTE "${BGFX_DIR}")
 	get_filename_component(BGFX_DIR "${BGFX_DIR}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
-if( BGFX_USE_OVR )
-	include( cmake/ovr.cmake )
-endif()
+# sets project version from api ver / git rev
+include( cmake/version.cmake )
 
 include( cmake/shared.cmake )
 include( cmake/bx.cmake )
@@ -70,7 +69,9 @@ if( BGFX_BUILD_TOOLS )
 	include( cmake/tools.cmake )
 endif()
 
-include( cmake/examples.cmake )
+if( BGFX_BUILD_TOOLS OR BGFX_BUILD_EXAMPLES )
+	include( cmake/examples.cmake )
+endif()
 
 if( BGFX_INSTALL )
 	include(GNUInstallDirs)
@@ -115,16 +116,24 @@ if( BGFX_INSTALL )
 		INSTALL_DESTINATION "${config_install_dir}"
 	)
 
-	install(FILES ${BGFX_DIR}/LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
-	install(FILES README.md DESTINATION ${CMAKE_INSTALL_DOCDIR})
+	install(FILES ${BGFX_DIR}/LICENSE DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licences/${PROJECT_NAME})
 
-	install( TARGETS bgfx bimg bx astc-codec astc edtaa3 etc1 etc2 iqa squish nvtt pvrtc
+	install( TARGETS bgfx
 			 EXPORT "${TARGETS_EXPORT_NAME}"
 			 LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			 ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 			 RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 			 INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 	)
+	if( NOT BGFX_LIBRARY_TYPE MATCHES "SHARED" )
+		install( TARGETS bimg bx astc-codec astc edtaa3 etc1 etc2 iqa squish nvtt pvrtc
+				 EXPORT "${TARGETS_EXPORT_NAME}"
+				 LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+				 ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+				 RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+				 INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+		)
+	endif()
     if (BGFX_CONFIG_RENDERER_WEBGPU)
 		install( TARGETS webgpu
 				 EXPORT "${TARGETS_EXPORT_NAME}"
