@@ -1,3 +1,6 @@
+# Archived
+## New Fork: https://github.com/bkaradzic/bgfx.cmake
+
 bgfx.cmake
 ===================
 [![Build Status](https://github.com/bkaradzic/bgfx.cmake/workflows/Release/badge.svg)](https://github.com/bkaradzic/bgfx.cmake/workflows/Release/badge.svg)
